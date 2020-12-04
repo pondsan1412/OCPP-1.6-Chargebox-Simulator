@@ -46,12 +46,13 @@
             background-color: yellow;
         }
     </style>
+    <meta charset="utf-8">
 </head>
 
 <body>
 <h1>Simple OCPP 1.6 Chargebox Simulator</h1>
 <select style="display:none;"><option value="">OCPP-J1.6</option></select>
-<label>Central Station</label><input id="CP" type="text" placeholder="Id Station" value="ws://192.168.1.7:9220/steve/websocket/CentralSystemService/test"/>
+<label>Central Station</label><input id="CP" type="text" placeholder="Id Station" value="ws://localhost:7540"/>
 <label>Tag</label><input id="TAG" type="text" placeholder="Tag" value="B4A63CDF"/>
 <h2>Actions</h2>
 <button id="connect">Connect</button>
@@ -82,6 +83,7 @@
     var id = randomId();
     var _websocket = null;
     var connector_locked = false;
+    var ssid = 0;
 
     function formatDate(date) {
         var day = String(date.getDate());
@@ -139,7 +141,7 @@
             _websocket.onmessage = function (msg) {
                 c++;
                 var ddata = (JSON.parse(msg.data));
-
+                let message;
                 if(c==1){
                     var hb_interval = handleData(ddata);
                     sessionStorage.setItem("Configuration",hb_interval);
@@ -151,48 +153,65 @@
 
                     if (la == "startTransaction"){
 
-                        ddata = ddata[2];
+                        //ddata = ddata[2];
                         logMsg("Data exchange successful!");
-                        var array = $.map(ddata, function (value, index) {
-                            return [value];
-                        });
-                        var TransactionId = (array[0]);
-                        sessionStorage.setItem('TransactionId', TransactionId);
+                        //var array = $.map(ddata, function (value, index) {
+                        //    return [value];
+                        //});
+                        //var TransactionId = ddata[2].transactionId);
+                        console.log(ddata[2]);
+                        sessionStorage.setItem('TransactionId', parseInt(ddata[2].transactionId));
 
-                    }
-                    logMsg("Response: " + JSON.stringify(ddata[2]));
+                    } 
+                    logMsg("Received: ");
+                    logMsg(ddata);
                 } else if ((JSON.parse(msg.data))[0] === 4) {
                     logMsg("Data exchange failed - JSON is not accepted!");
                 } else if ((JSON.parse(msg.data))[0] === 2) {
                     logMsg((JSON.parse(msg.data))[2]);
+                    logMsg(msg.data);
                     id = (JSON.parse(msg.data))[1];
-
+                     
                     switch (ddata[2]) {
                         case "Reset":
-                            //Reset type SOFT, HARD
                             var ResetS = JSON.stringify([3, id, {"status": "Accepted"}]);
                             _websocket.send(ResetS);
                             location.reload();
                             break;
                         case "RemoteStopTransaction":
-                            //TransactionID
                             var remStp = JSON.stringify([3, id, {"status": "Accepted"}]);
-                            _websocket.send(remStp);
-
+                            
+                            _websocket.send(remStp)
                             var stop_id = (JSON.parse(msg.data)[3].transactionId);
-
                             stopTransaction(stop_id);
                             $('.indicator').hide();
                             $('#yellow').show();
                             break;
-                        case "RemoteStartTransaction":
-                            //Need to get idTag, connectorId (map - ddata[3])
 
+                        case "RemoteStartTransaction":
+                            
                             var remStrt = JSON.stringify([3, id, {"status": "Accepted"}]);
+                            logMsg(remStrt);
                             _websocket.send(remStrt);
-                            startTransaction();
+                            //console.log('uiiu'+ddata)
+                            startTransaction(ddata[3].idTag, ddata[3].connectorId);
 
                             break;
+
+                        case "GetConfiguration":
+                            let mx = {configurationKey:[{key:'HeartbeatInterval',readonly: true,value:10000},{key:'connectors',readonly:true,value:'2'}]};
+                            message = JSON.stringify([3, id, mx]);
+                            logMsg(message);
+                            _websocket.send(message);
+                            break;
+
+                        case "ChangeConfiguration":
+
+                            message = JSON.stringify([3, id, {"status": "Accepted"}]);
+                            logMsg(message);
+                            _websocket.send(message);
+
+                            break;    
                         case "UnlockConnector": /////////ERROR!!!!!!!!
                             //connectorId
                             var UC = JSON.stringify([3, id, {"status": "Accepted"}]);
@@ -233,7 +252,7 @@
     }
 
     function logMsg(err) {
-        console.log(err);
+        console.log(err)
         $('#console').append('<li>' + err + '</li>');
     }
 
@@ -243,15 +262,16 @@
         _websocket.send(Auth);
     }
 
-    function startTransaction(){
+    function startTransaction(idTag, connectorId){
         sessionStorage.setItem('LastAction', "startTransaction");
         $('.indicator').hide();
         $('#green').show();
         connector_locked = true;
         logMsg("Connector status changed to: " + connector_locked);
         var strtT = JSON.stringify([2, id, "StartTransaction", {
-            "connectorId": 2,
-            "idTag": $("#TAG").val(),
+            "connectorId": connectorId,
+            //"idTag": $("#TAG").val(),
+            "idTag": idTag,
             "timestamp": formatDate(new Date()),
             "meterStart": 0,
             "reservationId": 0
@@ -261,11 +281,12 @@
 
     function stopTransaction(transaction_id = false){
         sessionStorage.setItem('LastAction', "stopTransaction");
-        transaction_id == false ? ssid = sessionStorage.getItem('TransactionId') : ssid = transaction_id;
+        transaction_id == false ? ssid = parseInt(sessionStorage.getItem('TransactionId')) : ssid = transaction_id;
         $('.indicator').hide();
         connector_locked = false;
         logMsg("Connector status changed to: " + connector_locked);
         $('#yellow').show();
+        //if(!ssid) ssid=0;
         var stpT = JSON.stringify([2, id, "StopTransaction",{
             "transactionId": ssid,
             "idTag": $("#TAG").val(),
@@ -278,7 +299,7 @@
     function handleData(data, request = false){
         var lastAction = getLastAction();
         if(lastAction = "BootNotification"){
-            data = data[2];
+            data = JSON.parse(data[2]);
             heartbeat_interval = data.interval;
             return heartbeat_interval;
         }else if(lastAction = "StartTransaction"){
@@ -297,8 +318,8 @@
         var BN = JSON.stringify([2, id, "BootNotification", {
             "chargePointVendor": "AVT-Company",
             "chargePointModel": "AVT-Express",
-            "chargePointSerialNumber": "avt.001.13.1",
-            "chargeBoxSerialNumber": "avt.001.13.1.01",
+            "chargePointSerialNumber": "avt001131",
+            "chargeBoxSerialNumber": "avt00113101",
             "firmwareVersion": "0.9.87",
             "iccid": "",
             "imsi": "",
@@ -313,7 +334,7 @@
 
     function startHB(interval){
         logMsg("Setting heartbeat interval to "+interval);
-        setInterval(send_heartbeat,interval);
+        //setInterval(send_heartbeat,interval);
     }
 
     function send_heartbeat() {
@@ -347,8 +368,10 @@
 
         $('#mv').click(function () {
             sessionStorage.setItem('LastAction', "MeterValues");
+            //if(!ssid) ssid=0;
+            ssid = sessionStorage.getItem('TransactionId')
             var val = $("#metervalue").val();
-            var MV = JSON.stringify([2, id, "MeterValues", {"connectorId": 1, "transactionId": ssid, "meterValue": [{"timestamp": formatDate(new Date()), "sampledValue": [{"value": val}]}]}]);
+            var MV = JSON.stringify([2, id, "MeterValues", {"connectorId": 1, "transactionId": parseInt(ssid), "meterValue": [{"timestamp": formatDate(new Date()), "sampledValue": [{"value": val}]}]}]);
             _websocket.send(MV);
 
         });
@@ -359,7 +382,7 @@
         $('#status').click(function () {
             sessionStorage.setItem('LastAction', "StatusNotification");
             var SN = JSON.stringify([2, id, "StatusNotification", {
-                "connectorId": 2,
+                "connectorId": 1,
                 "status": "Available",
                 "errorCode": "NoError",
                 "info": "",
