@@ -19,5 +19,3 @@ Functionalities:
   - GetConfiguration
   - ChangeConfiguration
   - RemoteStartTransaction
-
-   
