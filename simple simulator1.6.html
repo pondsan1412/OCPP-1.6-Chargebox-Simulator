@@ -371,7 +371,7 @@
             //if(!ssid) ssid=0;
             ssid = sessionStorage.getItem('TransactionId')
             var val = $("#metervalue").val();
-            var MV = JSON.stringify([2, id, "MeterValues", {"connectorId": 1, "transactionId": parseInt(ssid), "meterValue": [{"timestamp": formatDate(new Date()), "sampledValue": [{"value": val}]}]}]);
+            var MV = JSON.stringify([2, id, "MeterValues", {"connectorId": 1, "transactionId": parseInt(ssid), "meterValue": [{"timestamp": formatDate(new Date()), "sampledValue": [{"value": val, "context": "Interruption.Begin","format": "Raw","location": "Body","measurand": "Current.Export","phase": "L1","unit": "Wh"}]}]}]);
             _websocket.send(MV);
 
         });
