@@ -14,5 +14,10 @@ Functionalities:
   - Meter values
   - Status Notification
   - Data Transfer
+ 
+- Response command implemented
+  - GetConfiguration
+  - ChangeConfiguration
+  - RemoteStartTransaction
 
    
