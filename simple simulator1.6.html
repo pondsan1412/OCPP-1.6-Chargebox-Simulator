@@ -180,10 +180,10 @@
                             break;
                         case "RemoteStopTransaction":
                             var remStp = JSON.stringify([3, id, {"status": "Accepted"}]);
-                            
+                            logMsg(remStrt);
                             _websocket.send(remStp)
                             var stop_id = (JSON.parse(msg.data)[3].transactionId);
-                            stopTransaction(stop_id);
+                            stopTransaction(ddata[3].idTag,stop_id);
                             $('.indicator').hide();
                             $('#yellow').show();
                             break;
@@ -279,17 +279,15 @@
         _websocket.send(strtT);
     }
 
-    function stopTransaction(transaction_id = false){
+    function stopTransaction(idTag,transactionId){
         sessionStorage.setItem('LastAction', "stopTransaction");
-        transaction_id == false ? ssid = parseInt(sessionStorage.getItem('TransactionId')) : ssid = transaction_id;
         $('.indicator').hide();
         connector_locked = false;
         logMsg("Connector status changed to: " + connector_locked);
         $('#yellow').show();
-        //if(!ssid) ssid=0;
         var stpT = JSON.stringify([2, id, "StopTransaction",{
-            "transactionId": ssid,
-            "idTag": $("#TAG").val(),
+            "transactionId": transactionId,
+            "idTag": idTag,
             "timestamp": formatDate(new Date()),
             "meterStop": 20
         }]);
@@ -371,7 +369,7 @@
             //if(!ssid) ssid=0;
             ssid = sessionStorage.getItem('TransactionId')
             var val = $("#metervalue").val();
-            var MV = JSON.stringify([2, id, "MeterValues", {"connectorId": 1, "transactionId": parseInt(ssid), "meterValue": [{"timestamp": formatDate(new Date()), "sampledValue": [{"value": val}]}]}]);
+            var MV = JSON.stringify([2, id, "MeterValues", {"connectorId": 1, "transactionId": parseInt(ssid), "meterValue": [{"timestamp": formatDate(new Date()), "sampledValue": [{"value": val, "context": "Interruption.Begin","format": "Raw","location": "Body","measurand": "Current.Export","phase": "L1","unit": "Wh"}]}]}]);
             _websocket.send(MV);
 
         });
