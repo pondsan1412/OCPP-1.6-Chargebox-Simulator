@@ -288,6 +288,7 @@
         var stpT = JSON.stringify([2, id, "StopTransaction",{
             "transactionId": transactionId,
             "idTag": idTag,
+            "transactionData": [ { "sampledValue": [ { "context": "Interruption.Begin", "format": "Raw", "location": "Body", "measurand": "Energy.Active.Import.Register", "phase": "L1", "unit": "Wh", "value": "100" } ], "timestamp": formatDate(new Date()) } ],
             "timestamp": formatDate(new Date()),
             "meterStop": 20
         }]);
