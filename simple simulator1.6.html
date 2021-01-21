@@ -73,14 +73,14 @@
 </div>
 <ul id="console"></ul>
 <script
-        src="https://code.jquery.com/jquery-3.3.1.min.js"
+        src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"
         integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
         crossorigin="anonymous"></script>
 
 <script>
     var c = 0;
     var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    var id = randomId();
+    var id = randomString(10,possible)
     var _websocket = null;
     var connector_locked = false;
     var ssid = 0;
@@ -111,12 +111,10 @@
         return year + '-' + monthIndex + '-' + day+"T"+h+":"+m+":"+s+"Z";
     }
 
-    function randomId() {
-        id = "";
-        for (var i = 0; i < 36; i++) {
-            id += possible.charAt(Math.floor(Math.random() * possible.length));
-        }
-        return id;
+    function randomString(length, chars) {
+        var result = '';
+        for (var i = length; i > 0; --i) result += chars[Math.floor(Math.random() * chars.length)];
+        return result;
     }
 
     function wsConnect() {
@@ -142,11 +140,11 @@
                 c++;
                 var ddata = (JSON.parse(msg.data));
                 let message;
-                if(c==1){
+                /*if(c==1){
                     var hb_interval = handleData(ddata);
                     sessionStorage.setItem("Configuration",hb_interval);
                     startHB(hb_interval*1000);
-                }
+                }*/
 
                 if (ddata[0] === 3) {
                     la = getLastAction();
@@ -314,10 +312,11 @@
     }
 
     function BootNotification(){
+        var idB = randomString(5,possible)
         var BN = JSON.stringify([2, id, "BootNotification", {
-            "chargePointVendor": "AVT-Company",
-            "chargePointModel": "AVT-Express",
-            "chargePointSerialNumber": "avt001131",
+            "chargePointVendor": "pt.abb",
+            "chargePointModel": "DC Wallbox CE",
+            "chargePointSerialNumber": "avt00113101",
             "chargeBoxSerialNumber": "avt00113101",
             "firmwareVersion": "0.9.87",
             "iccid": "",
@@ -325,7 +324,6 @@
             "meterType": "AVT NQC-ACDC",
             "meterSerialNumber": "avt.001.13.1.01"
         }]);
-
         logMsg('ws connected');
 
         _websocket.send(BN);
@@ -340,6 +338,33 @@
         sessionStorage.setItem('LastAction', "Heartbeat");
         var HB = JSON.stringify([2, id, "Heartbeat", {}]);
         _websocket.send(HB);
+    }
+
+    function statusNotification() {
+        sessionStorage.setItem('LastAction', "StatusNotification");
+        var SN = JSON.stringify([2, id, "StatusNotification", {
+            "connectorId": 1,
+            "status": "Available",
+            "errorCode": "NoError",
+            "info": "",
+            "timestamp": formatDate(new Date()),
+            "vendorId": "",
+            "vendorErrorCode": ""
+        }]);
+        logMsg(SN);
+        _websocket.send(SN);
+
+         SN = JSON.stringify([2, id, "StatusNotification", {
+            "connectorId": 0,
+            "status": "Available",
+            "errorCode": "NoError",
+            "info": "",
+            "timestamp": formatDate(new Date()),
+            "vendorId": "",
+            "vendorErrorCode": ""
+        }]);
+        logMsg(SN);
+        _websocket.send(SN);
     }
 
     $( document ).ready(function() {
@@ -379,17 +404,7 @@
         });
 
         $('#status').click(function () {
-            sessionStorage.setItem('LastAction', "StatusNotification");
-            var SN = JSON.stringify([2, id, "StatusNotification", {
-                "connectorId": 1,
-                "status": "Available",
-                "errorCode": "NoError",
-                "info": "",
-                "timestamp": formatDate(new Date()),
-                "vendorId": "",
-                "vendorErrorCode": ""
-            }]);
-            _websocket.send(SN);
+           statusNotification()
         });
 
         $('#data_transfer').click(function () {
