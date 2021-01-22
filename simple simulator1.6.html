@@ -52,7 +52,7 @@
 <body>
 <h1>Simple OCPP 1.6 Chargebox Simulator</h1>
 <select style="display:none;"><option value="">OCPP-J1.6</option></select>
-<label>Central Station</label><input id="CP" type="text" placeholder="Id Station" value="ws://localhost:7540"/>
+<label>Central Station</label><input id="CP" type="text" placeholder="Id Station"/>
 <label>Tag</label><input id="TAG" type="text" placeholder="Tag" value="B4A63CDF"/>
 <h2>Actions</h2>
 <button id="connect">Connect</button>
@@ -160,7 +160,9 @@
                         console.log(ddata[2]);
                         sessionStorage.setItem('TransactionId', parseInt(ddata[2].transactionId));
 
-                    } 
+                    }else if (la == "bootNotification") {
+                        statusNotification();
+                    }
                     logMsg("Received: ");
                     logMsg(ddata);
                 } else if ((JSON.parse(msg.data))[0] === 4) {
@@ -171,16 +173,26 @@
                     id = (JSON.parse(msg.data))[1];
                      
                     switch (ddata[2]) {
+                        case "ClearCache":
+                            var ClearS = JSON.stringify([3, id, {"status": "Accepted"}]);
+                            _websocket.send(ClearS);
+                            break;
                         case "Reset":
                             var ResetS = JSON.stringify([3, id, {"status": "Accepted"}]);
                             _websocket.send(ResetS);
                             location.reload();
+                            break;
+                        case "ChangeAvailability":
+                            var ChangeS = JSON.stringify([3, id, {"status": "Accepted"}]);
+                            _websocket.send(ChangeS);
                             break;
                         case "RemoteStopTransaction":
                             var remStp = JSON.stringify([3, id, {"status": "Accepted"}]);
                             logMsg(remStrt);
                             _websocket.send(remStp)
                             var stop_id = (JSON.parse(msg.data)[3].transactionId);
+                            sleep(5000);
+							logMsg("Sending... StopTransaction");
                             stopTransaction(ddata[3].idTag,stop_id);
                             $('.indicator').hide();
                             $('#yellow').show();
@@ -192,6 +204,8 @@
                             logMsg(remStrt);
                             _websocket.send(remStrt);
                             //console.log('uiiu'+ddata)
+                            sleep(5000);
+							logMsg("Sending... StartTransaction");
                             startTransaction(ddata[3].idTag, ddata[3].connectorId);
 
                             break;
@@ -210,14 +224,14 @@
                             _websocket.send(message);
 
                             break;    
-                        case "UnlockConnector": /////////ERROR!!!!!!!!
+                        case "UnlockConnector": 
                             //connectorId
-                            var UC = JSON.stringify([3, id, {"status": "Accepted"}]);
+                            var UC = JSON.stringify([3, id, {"status": "Unlocked"}]);
                             _websocket.send(UC);
-                            // connector_locked = false;
-                            // $('.indicator').hide();
-                            //$('#yellow').show();
-                            //logMsg("Connector status changed to: "+connector_locked);
+                             connector_locked = false;
+                             $('.indicator').hide();
+                            $('#yellow').show();
+                            logMsg("Connector status changed to: "+connector_locked);
                             break;
                         default:
                             var error = JSON.stringify([4, id]);
@@ -328,6 +342,15 @@
 
         _websocket.send(BN);
     }
+
+    function sleep(milliseconds) {
+	  const date = Date.now();
+	  let currentDate = null;
+	  do {
+		currentDate = Date.now();
+	  } while (currentDate - date < milliseconds);
+	}
+
 
     function startHB(interval){
         logMsg("Setting heartbeat interval to "+interval);
