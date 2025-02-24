@@ -1,3 +1,4 @@
+
 # OCPP 1.6 Chargebox Simulator
 
 A simple chargepoint simulator, working with OCPP 1.6.
@@ -41,14 +42,86 @@ Based on the old simpler version of the [OCPP-J-CP-Simulator](https://github.com
 
 ### Usage
 
-1. Open the [simulator.html](http://_vscodecontentref_/0) file in your web browser.
+1. Open the simulator.html file in your web browser.
 2. Enter the Central Station ID and Tag ID.
 3. Use the buttons to simulate various chargebox actions.
 
 ### Screenshots
 
-![image](https://github.com/user-attachments/assets/2b9bf226-22a8-4d91-92b7-dbcbf83cd2fe)
+![Simulator UI](https://github.com/user-attachments/assets/2b9bf226-22a8-4d91-92b7-dbcbf83cd2fe)
 
+## Changes Made
+
+- Improved UI for a more modern and professional look.
+- Updated the `startTransaction` and `stopTransaction` functions for better functionality.
+- Added indicators to show the status of the connection and transactions.
+- Enhanced the logging mechanism to provide better feedback in the console.
+
+### Updated Functions
+
+#### startTransaction
+
+```javascript
+function startTransaction(idTag, connectorId) {
+    sessionStorage.setItem('LastAction', "startTransaction");
+    $('.indicator').hide();
+    $('#green').show();
+    connector_locked = true;
+    logMsg("Connector status changed to: " + connector_locked);
+
+    let payload = {
+        "connectorId": connectorId,
+        "idTag": idTag,
+        "timestamp": formatDate(new Date()),
+        "meterStart": 0,
+        "reservationId": 0
+    };
+
+    console.log("StartTransaction Payload: ", payload);
+
+    let strtT = JSON.stringify([2, id, "StartTransaction", payload]);
+    _websocket.send(strtT);
+}
+```
+
+#### stopTransaction
+
+```javascript
+function stopTransaction(idTag, transactionId) {
+    sessionStorage.setItem('LastAction', "stopTransaction");
+    $('.indicator').hide();
+    connector_locked = false;
+    logMsg("Connector status changed to: " + connector_locked);
+    $('#yellow').show();
+
+    const payload = {
+        transactionId: Number(transactionId),
+        idTag: idTag,
+        transactionData: [
+            {
+                sampledValue: [
+                    {
+                        context: "Interruption.Begin",
+                        format: "Raw",
+                        location: "Body",
+                        measurand: "Energy.Active.Import.Register",
+                        phase: "L1",
+                        unit: "Wh",
+                        value: "100"
+                    }
+                ],
+                timestamp: formatDate(new Date())
+            }
+        ],
+        timestamp: formatDate(new Date()),
+        meterStop: 20
+    };
+
+    console.log("StopTransaction Payload:", payload);
+    const stpT = JSON.stringify([2, id, "StopTransaction", payload]);
+    _websocket.send(stpT);
+}
+```
 
 ## Contributing
 
