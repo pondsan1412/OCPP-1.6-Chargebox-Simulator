@@ -32,7 +32,7 @@ Based on the old simpler version of the [OCPP-J-CP-Simulator](https://github.com
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/yourusername/OCPP-1.6-Chargebox-Simulator.git
+    git clone https://github.com/pondsan1412/OCPP-1.6-Chargebox-Simulator.git
     ```
 2. Navigate to the project directory:
     ```sh
